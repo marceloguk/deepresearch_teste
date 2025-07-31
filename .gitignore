@@ -1,0 +1,20 @@
+# Ignora pastas de build
+/dist/
+/build/
+
+# Arquivos temporários do macOS
+.DS_Store
+
+# Chaves e senhas
+*.pem
+secrets.env
+
+# Logs
+*.log
+
+# Node.js
+node_modules/
+
+# Key
+/backend/.env
+/backend/.DS_Store
