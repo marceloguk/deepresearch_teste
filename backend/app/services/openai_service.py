@@ -3,6 +3,7 @@ from typing import List, Dict, Any, Optional
 import json
 import time
 from datetime import datetime
+import logging
 
 from ..config import settings
 from ..models import (
@@ -10,6 +11,16 @@ from ..models import (
     PromptRewriteResponse, ResearchStep, ResearchMode,
     ClarificationWithAnswers
 )
+
+
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    logger.setLevel(level)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 class OpenAIService:
@@ -143,7 +154,9 @@ class OpenAIService:
     
     async def deep_research(self, prompt: str, mode: ResearchMode, tools: List[Dict[str, Any]]) -> str:
         """Step 3: Perform deep research using specified model and tools"""
-        
+        logger.info("Starting deep research in mode %s", mode.value)
+        logger.debug("Research prompt: %s", prompt)
+        logger.debug("Tools: %s", tools)
         if mode == ResearchMode.DEEP_RESEARCH_O3:
             model = settings.deep_research_model_o3
         elif mode == ResearchMode.DEEP_RESEARCH_O4_MINI:
@@ -188,17 +201,21 @@ class OpenAIService:
                 return response.choices[0].message.content
             
         except Exception as e:
+            logger.exception("Deep research failed")
             return f"Error during deep research: {str(e)}"
     
     async def _make_openai_request(self, **kwargs) -> Any:
         """Make an OpenAI API request with error handling"""
         try:
+            logger.debug("OpenAI request payload: %s", kwargs)
             if "tools" in kwargs and kwargs["tools"]:
                 response = self.client.chat.completions.create(**kwargs)
             else:
                 response = self.client.chat.completions.create(**kwargs)
+            logger.debug("OpenAI response status: %s", getattr(response, "status_code", "n/a"))
             return response
         except Exception as e:
+            logger.exception("OpenAI API request failed")
             raise Exception(f"OpenAI API error: {str(e)}")
     
     async def _make_deep_research_request(self, model: str, prompt: str, tools: List[Dict[str, Any]]) -> str:
@@ -227,6 +244,7 @@ class OpenAIService:
                 "tools": formatted_tools
             }
             
+            logger.debug("Deep research payload: %s", payload)
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     "https://api.openai.com/v1/responses",
@@ -234,23 +252,27 @@ class OpenAIService:
                     json=payload,
                     timeout=300.0  # 5 minutes timeout for deep research
                 )
+            logger.debug("Deep research response status: %s", response.status_code)
+            logger.debug("Deep research response body: %s", response.text)
                 
-                if response.status_code != 200:
-                    error_detail = response.text
-                    raise Exception(f"Error code: {response.status_code} - {error_detail}")
-                
-                result = response.json()
-                
-                if "choices" in result and len(result["choices"]) > 0:
-                    choice = result["choices"][0]
-                    if "message" in choice and "content" in choice["message"]:
-                        return choice["message"]["content"]
-                    elif "content" in choice:
-                        return choice["content"]
-                    else:
-                        return "No content returned"
+            if response.status_code != 200:
+                error_detail = response.text
+                logger.error("Deep research request failed with code %s: %s", response.status_code, error_detail)
+                raise Exception(f"Error code: {response.status_code} - {error_detail}")
+
+            result = response.json()
+
+            if "choices" in result and len(result["choices"]) > 0:
+                choice = result["choices"][0]
+                if "message" in choice and "content" in choice["message"]:
+                    return choice["message"]["content"]
+                elif "content" in choice:
+                    return choice["content"]
                 else:
-                    return "No response generated"
+                    return "No content returned"
+            else:
+                return "No response generated"
                     
         except Exception as e:
+            logger.exception("Deep research API request failed")
             raise Exception(f"Deep research API error: {str(e)}")
