@@ -249,14 +249,16 @@ class OpenAIService:
             }
             
             logger.debug("Deep research payload: %s", payload)
-            async with httpx.AsyncClient() as client:
+            logger.info("Iniciando chamada para API de Deep Research - isso pode levar até 20 minutos...")
+            async with httpx.AsyncClient(timeout=httpx.Timeout(1200.0)) as client:
                 response = await client.post(
                     "https://api.openai.com/v1/responses",
                     headers=headers,
-                    json=payload,
-                    timeout=300.0  # 5 minutes timeout for deep research
+                    json=payload
                 )
-            logger.debug("Deep research response status: %s", response.status_code)
+            logger.info("Deep research API respondeu com status: %s", response.status_code)
+            if response.status_code == 200:
+                logger.info("Deep research concluída com sucesso!")
             logger.debug("Deep research response body: %s", response.text)
                 
             if response.status_code != 200:
@@ -277,6 +279,9 @@ class OpenAIService:
             else:
                 return "No response generated"
                     
+        except httpx.ReadTimeout:
+            logger.error("Deep research API timeout - a operação pode estar levando mais tempo que o esperado")
+            raise Exception("Deep research API timeout: A pesquisa está levando mais tempo que o esperado. Tente novamente ou use um prompt mais específico.")
         except Exception as e:
             logger.exception("Deep research API request failed")
             error_msg = f"Deep research API error: {str(e)}"
