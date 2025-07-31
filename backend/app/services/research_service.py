@@ -183,15 +183,16 @@ class ResearchService:
                 ))
         
         analysis_prompt = f"""
-        Based on the research conducted on: {prompt}
+        Baseado na pesquisa conduzida sobre: {prompt}
         
-        Search Results Found:
+        Resultados de Busca Encontrados:
         {self._format_search_results_for_analysis(search_results)}
         
-        Detailed Content Retrieved:
+        Conteúdo Detalhado Recuperado:
         {self._format_fetch_results_for_analysis(fetch_results)}
         
-        Provide a comprehensive analysis that synthesizes the findings from both web search and internal sources.
+        Forneça uma análise abrangente que sintetize as descobertas de fontes web e internas.
+        Responda em PORTUGUÊS BRASILEIRO.
         """
         
         analysis_start = time.time()
@@ -228,12 +229,13 @@ class ResearchService:
         ))
         
         analysis_prompt = f"""
-        Based on web search results for: {prompt}
+        Baseado nos resultados de busca web para: {prompt}
         
-        Search Results:
+        Resultados de Busca:
         {self._format_search_results_for_analysis(search_results)}
         
-        Provide a comprehensive analysis based on the web search findings.
+        Forneça uma análise abrangente baseada nas descobertas da busca web.
+        Responda em PORTUGUÊS BRASILEIRO.
         """
         
         analysis_start = time.time()
@@ -285,15 +287,16 @@ class ResearchService:
             ))
         
         analysis_prompt = f"""
-        Based on internal research for: {prompt}
+        Baseado na pesquisa interna para: {prompt}
         
-        Internal Sources Found:
+        Fontes Internas Encontradas:
         {self._format_search_results_for_analysis(search_results)}
         
-        Detailed Internal Content:
+        Conteúdo Interno Detalhado:
         {self._format_fetch_results_for_analysis(fetch_results)}
         
-        Provide a comprehensive analysis based on the internal sources and data.
+        Forneça uma análise abrangente baseada nas fontes e dados internos.
+        Responda em PORTUGUÊS BRASILEIRO.
         """
         
         analysis_start = time.time()
