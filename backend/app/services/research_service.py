@@ -5,7 +5,8 @@ from typing import List, Dict, Any, Optional
 
 from ..models import (
     ResearchRequest, ResearchResult, ResearchMode, ResearchStep,
-    ClarificationResponse, PromptRewriteResponse, SearchResult, FetchResult
+    ClarificationResponse, ClarificationWithAnswers,
+    PromptRewriteResponse, SearchResult, FetchResult,
 )
 from .openai_service import OpenAIService
 from .websearch_service import WebSearchService
@@ -42,9 +43,14 @@ class ResearchService:
             research_prompt = request.query
             if request.include_prompt_rewriting:
                 rewrite_start = time.time()
+                clarification_with_answers = ClarificationWithAnswers(
+                    questions=clarification.questions if clarification else [],
+                    answers=[],
+                    clarified_intent=clarification.clarified_intent if clarification else request.query,
+                )
                 prompt_rewrite = await self.openai_service.rewrite_prompt(
-                    request.query, 
-                    clarification or ClarificationResponse(questions=[], clarified_intent=request.query)
+                    request.query,
+                    clarification_with_answers,
                 )
                 research_prompt = prompt_rewrite.rewritten_prompt
                 rewrite_duration = int((time.time() - rewrite_start) * 1000)
