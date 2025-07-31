@@ -173,6 +173,16 @@ async def get_research_modes():
         }
     }
 
+@app.get("/research-depth-options")
+async def get_research_depth_options():
+    """Get available research depth configurations"""
+    from .config import RESEARCH_DEPTH_CONFIG
+    return {
+        "depth_options": RESEARCH_DEPTH_CONFIG,
+        "default": "medium",
+        "description": "Opções de profundidade de pesquisa para controlar custo e velocidade"
+    }
+
 @app.get("/tools")
 async def get_available_tools():
     """
@@ -196,11 +206,21 @@ async def conduct_analysis_only(request: dict):
     Conduct analysis step only, after clarification and prompt rewriting are complete
     """
     try:
+        from .config import RESEARCH_DEPTH_CONFIG
+        
+        research_depth = request.get('research_depth', 'medium')
+        max_tool_calls = request.get('max_tool_calls')
+        if max_tool_calls is None and research_depth in RESEARCH_DEPTH_CONFIG:
+            max_tool_calls = RESEARCH_DEPTH_CONFIG[research_depth]["max_tool_calls"]
+        
         analysis_request = ResearchRequest(
             query=request.get('rewritten_prompt', ''),
             mode=ResearchMode(request.get('mode', 'o3-deep-research')),
             include_clarification=False,
-            include_prompt_rewriting=False
+            include_prompt_rewriting=False,
+            research_depth=research_depth,
+            max_tool_calls=max_tool_calls,
+            background_mode=request.get('background_mode', True)
         )
         result = await research_service.conduct_research(analysis_request)
         return result

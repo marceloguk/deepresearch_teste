@@ -18,6 +18,9 @@ class ResearchRequest(BaseModel):
     temperature: Optional[float] = 0.7
     include_clarification: bool = True
     include_prompt_rewriting: bool = True
+    research_depth: Optional[Literal["fast", "medium", "deep"]] = "medium"
+    max_tool_calls: Optional[int] = None
+    background_mode: bool = True
 
 
 class ClarificationQuestion(BaseModel):

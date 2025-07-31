@@ -154,11 +154,15 @@ class OpenAIService:
                 reasoning="Reescrita de prompt de fallback devido a erro de processamento"
             )
     
-    async def deep_research(self, prompt: str, mode: ResearchMode, tools: List[Dict[str, Any]]) -> str:
-        """Step 3: Perform deep research using specified model and tools"""
-        logger.info("Starting deep research in mode %s", mode.value)
+    async def deep_research(self, prompt: str, mode: ResearchMode, tools: List[Dict[str, Any]], 
+                       research_depth: str = "medium", max_tool_calls: Optional[int] = None, 
+                       background_mode: bool = True) -> str:
+        """Step 3: Perform deep research using specified model and tools with configurable depth"""
+        logger.info("Starting deep research in mode %s with depth %s", mode.value, research_depth)
         logger.debug("Research prompt: %s", prompt)
         logger.debug("Tools: %s", tools)
+        logger.debug("Max tool calls: %s", max_tool_calls)
+        logger.debug("Background mode: %s", background_mode)
         if mode == ResearchMode.DEEP_RESEARCH_O3:
             model = settings.deep_research_model_o3
         elif mode == ResearchMode.DEEP_RESEARCH_O4_MINI:
@@ -222,7 +226,8 @@ class OpenAIService:
             logger.exception("OpenAI API request failed")
             raise Exception(f"OpenAI API error: {str(e)}")
     
-    async def _make_deep_research_request(self, model: str, prompt: str, tools: List[Dict[str, Any]]) -> str:
+    async def _make_deep_research_request(self, model: str, prompt: str, tools: List[Dict[str, Any]], 
+                                         max_tool_calls: Optional[int] = None, background_mode: bool = True) -> str:
         """Make a request to the OpenAI Responses API for deep research models"""
         try:
             import httpx
@@ -245,18 +250,25 @@ class OpenAIService:
                     }
                 ],
                 "reasoning": {"summary": "auto"},
-                "tools": formatted_tools
+                "tools": formatted_tools,
+                "background": background_mode
             }
             
+            if max_tool_calls is not None:
+                payload["max_tool_calls"] = max_tool_calls
+                logger.info("Configurando max_tool_calls para %d para controlar profundidade da pesquisa", max_tool_calls)
+            
             logger.debug("Deep research payload: %s", payload)
-            async with httpx.AsyncClient() as client:
+            logger.info("Iniciando chamada para API de Deep Research - isso pode levar até 30 minutos...")
+            async with httpx.AsyncClient(timeout=httpx.Timeout(1800.0)) as client:
                 response = await client.post(
                     "https://api.openai.com/v1/responses",
                     headers=headers,
-                    json=payload,
-                    timeout=300.0  # 5 minutes timeout for deep research
+                    json=payload
                 )
-            logger.debug("Deep research response status: %s", response.status_code)
+            logger.info("Deep research API respondeu com status: %s", response.status_code)
+            if response.status_code == 200:
+                logger.info("Deep research concluída com sucesso!")
             logger.debug("Deep research response body: %s", response.text)
                 
             if response.status_code != 200:
@@ -277,6 +289,9 @@ class OpenAIService:
             else:
                 return "No response generated"
                     
+        except httpx.ReadTimeout:
+            logger.error("Deep research API timeout - a operação pode estar levando mais tempo que o esperado")
+            raise Exception("Deep research API timeout: A pesquisa está levando mais tempo que o esperado. Tente novamente ou use um prompt mais específico.")
         except Exception as e:
             logger.exception("Deep research API request failed")
             error_msg = f"Deep research API error: {str(e)}"

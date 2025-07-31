@@ -70,7 +70,14 @@ class ResearchService:
             if request.mode in [ResearchMode.DEEP_RESEARCH_O3, ResearchMode.DEEP_RESEARCH_O4_MINI]:
                 tools = await self._get_tools_for_mode(request.mode)
                 research_start = time.time()
-                final_analysis = await self.openai_service.deep_research(research_prompt, request.mode, tools)
+                final_analysis = await self.openai_service.deep_research(
+                    research_prompt, 
+                    request.mode, 
+                    tools,
+                    research_depth=getattr(request, 'research_depth', 'medium'),
+                    max_tool_calls=getattr(request, 'max_tool_calls', None),
+                    background_mode=getattr(request, 'background_mode', True)
+                )
                 research_duration = int((time.time() - research_start) * 1000)
                 
                 steps.append(ResearchStep(

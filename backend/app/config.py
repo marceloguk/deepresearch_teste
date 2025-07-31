@@ -20,3 +20,18 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+RESEARCH_DEPTH_CONFIG = {
+    "fast": {
+        "max_tool_calls": 5, 
+        "description": "Pesquisa rápida com menos chamadas de ferramentas - ideal para respostas rápidas e economia de créditos"
+    },
+    "medium": {
+        "max_tool_calls": 15, 
+        "description": "Pesquisa balanceada entre velocidade e profundidade - configuração padrão recomendada"
+    },
+    "deep": {
+        "max_tool_calls": 30, 
+        "description": "Pesquisa profunda e abrangente - máxima qualidade com maior uso de créditos"
+    }
+}
