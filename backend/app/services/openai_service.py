@@ -51,28 +51,28 @@ class OpenAIService:
         try:
             if settings.openai_api_key and settings.openai_api_key != "your_openai_api_key_here":
                 clarification_prompt = f"""
-                You are an expert research assistant. A user has submitted the following research query:
+                Você é um assistente de pesquisa especializado. Um usuário enviou a seguinte consulta de pesquisa:
                 
                 "{query}"
                 
-                Your task is to:
-                1. Identify any ambiguities or missing context in the query
-                2. Generate 2-3 clarifying questions that would help improve the research
-                3. Provide a clarified intent statement based on reasonable assumptions
+                Sua tarefa é:
+                1. Identificar ambiguidades ou contexto ausente na consulta
+                2. Gerar 2-3 perguntas de clarificação que ajudariam a melhorar a pesquisa
+                3. Fornecer uma declaração de intenção clarificada baseada em suposições razoáveis
                 
-                Focus on understanding:
-                - The specific scope and depth of research needed
-                - Target audience or use case
-                - Time frame or geographical constraints
-                - Preferred types of sources or evidence
+                Foque em entender:
+                - O escopo específico e profundidade da pesquisa necessária
+                - Público-alvo ou caso de uso
+                - Período de tempo ou restrições geográficas
+                - Tipos preferidos de fontes ou evidências
                 
-                Respond in JSON format with:
+                Responda em formato JSON com:
                 {{
                     "questions": [
                         {{"question": "...", "context": "..."}},
                         ...
                     ],
-                    "clarified_intent": "A clear statement of what the user likely wants to research"
+                    "clarified_intent": "Uma declaração clara do que o usuário provavelmente quer pesquisar"
                 }}
                 """
                 
@@ -109,29 +109,31 @@ class OpenAIService:
                     user_answers_text += f"Q: {question.question}\nA: {answer.answer}\n\n"
         
         rewrite_prompt = f"""
-        You are an expert prompt engineer for research tasks. You need to rewrite a user query into a comprehensive, detailed prompt suitable for deep research.
+        Você é um especialista em engenharia de prompts para tarefas de pesquisa. Você precisa reescrever uma consulta do usuário em um prompt abrangente e detalhado adequado para pesquisa profunda.
         
-        Original query: "{original_query}"
-        Clarified intent: "{clarification_with_answers.clarified_intent}"
+        Consulta original: "{original_query}"
+        Intenção clarificada: "{clarification_with_answers.clarified_intent}"
         {user_answers_text}
         
-        Create a detailed, expanded prompt that:
-        1. Clearly defines the research scope and objectives based on user answers
-        2. Specifies the type of analysis needed incorporating user preferences
-        3. Includes guidance on source types and evidence quality as specified by user
-        4. Provides structure for the expected output matching user requirements
-        5. Incorporates best practices for comprehensive research
+        Crie um prompt detalhado e expandido que:
+        1. Define claramente o escopo e objetivos da pesquisa baseado nas respostas do usuário
+        2. Especifica o tipo de análise necessária incorporando as preferências do usuário
+        3. Inclui orientações sobre tipos de fontes e qualidade de evidências conforme especificado pelo usuário
+        4. Fornece estrutura para a saída esperada correspondendo aos requisitos do usuário
+        5. Incorpora as melhores práticas para pesquisa abrangente
         
-        The rewritten prompt should be suitable for a deep research model that will:
-        - Search for relevant information using web search tools
-        - Fetch detailed content from promising sources
-        - Synthesize findings into a comprehensive analysis
+        O prompt reescrito deve ser adequado para um modelo de pesquisa profunda que irá:
+        - Buscar informações relevantes usando ferramentas de busca web
+        - Buscar conteúdo detalhado de fontes promissoras
+        - Sintetizar descobertas em uma análise abrangente
         
-        Respond in JSON format:
+        IMPORTANTE: O prompt reescrito deve ser em PORTUGUÊS BRASILEIRO e instruir o modelo a responder em português.
+        
+        Responda em formato JSON:
         {{
             "original_query": "{original_query}",
-            "rewritten_prompt": "The comprehensive, detailed research prompt incorporating user answers",
-            "reasoning": "Explanation of how user answers improved the research prompt"
+            "rewritten_prompt": "O prompt de pesquisa abrangente e detalhado incorporando as respostas do usuário, escrito em português brasileiro",
+            "reasoning": "Explicação de como as respostas do usuário melhoraram o prompt de pesquisa"
         }}
         """
         
@@ -148,8 +150,8 @@ class OpenAIService:
         except Exception as e:
             return PromptRewriteResponse(
                 original_query=original_query,
-                rewritten_prompt=f"Conduct comprehensive research on: {original_query}. Provide detailed analysis with supporting evidence from multiple reliable sources.",
-                reasoning="Fallback prompt rewrite due to processing error"
+                rewritten_prompt=f"Conduza pesquisa abrangente sobre: {original_query}. Forneça análise detalhada com evidências de apoio de múltiplas fontes confiáveis. Responda em português brasileiro.",
+                reasoning="Reescrita de prompt de fallback devido a erro de processamento"
             )
     
     async def deep_research(self, prompt: str, mode: ResearchMode, tools: List[Dict[str, Any]]) -> str:
@@ -165,20 +167,22 @@ class OpenAIService:
             model = "gpt-4"
         
         system_prompt = """
-        You are an expert research analyst. Your task is to conduct thorough research on the given topic using the available tools.
+        Você é um analista de pesquisa especializado. Sua tarefa é conduzir pesquisa minuciosa sobre o tópico dado usando as ferramentas disponíveis.
         
-        Research Process:
-        1. Use the search tool to find relevant information sources
-        2. Use the fetch tool to retrieve detailed content from the most promising sources
-        3. Analyze and synthesize the information to provide comprehensive insights
-        4. Cite your sources and provide evidence for your conclusions
+        Processo de Pesquisa:
+        1. Use a ferramenta de busca para encontrar fontes de informação relevantes
+        2. Use a ferramenta de busca para recuperar conteúdo detalhado das fontes mais promissoras
+        3. Analise e sintetize as informações para fornecer insights abrangentes
+        4. Cite suas fontes e forneça evidências para suas conclusões
         
-        Guidelines:
-        - Prioritize authoritative and recent sources
-        - Look for multiple perspectives on controversial topics
-        - Provide specific examples and data when available
-        - Structure your response clearly with headings and bullet points
-        - Include proper citations and source references
+        Diretrizes:
+        - Priorize fontes autoritativas e recentes
+        - Procure múltiplas perspectivas sobre tópicos controversos
+        - Forneça exemplos específicos e dados quando disponíveis
+        - Estruture sua resposta claramente com títulos e marcadores
+        - Inclua citações adequadas e referências de fontes
+        
+        IMPORTANTE: Responda sempre em PORTUGUÊS BRASILEIRO.
         """
         
         try:
@@ -275,4 +279,9 @@ class OpenAIService:
                     
         except Exception as e:
             logger.exception("Deep research API request failed")
-            raise Exception(f"Deep research API error: {str(e)}")
+            error_msg = f"Deep research API error: {str(e)}"
+            if hasattr(e, 'response'):
+                response = getattr(e, 'response', None)
+                if response and hasattr(response, 'text'):
+                    error_msg += f" Response: {response.text}"
+            raise Exception(error_msg)
